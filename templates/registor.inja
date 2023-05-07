@@ -1,0 +1,10 @@
+  rttr::registration::class_<{{name}}>("{{name}}")
+      .constructor<>()
+      {% for item in fields_static -%}
+      .property("{{item.alias}}", &{{name}}::{{item.name}})
+      {% endfor %}
+      {% for item in fields -%}
+      .property("{{item.alias}}", &{{name}}::{{item.name}})
+      {% endfor %}
+      ;
+      

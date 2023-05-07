@@ -1,0 +1,11 @@
+{
+    "compdb_dir": "../build",
+    "header": "../templates/header.inja",
+    "for_enum": "../templates/registor.inja",
+    "object": "../templates/registor.inja",
+    "input": [
+        "../data/exampleClass.h"
+    ],
+    "output_dir": "../generated",
+    "output_file": "registor.h"
+}

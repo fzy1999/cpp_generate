@@ -1,0 +1,41 @@
+message {{name}} {
+  {% for item in fields_static %}
+
+    {% if 'vector' in item.type %}
+      {% if '*' in item.type %}
+        {% set item_type = 'uint64' %}
+      {% else %}
+        {% set item_type = item.type.split('<')[1].strip(' >') %}
+      {% endif %}
+      repeated {{ item_type }} {{ item.name }} = {{ loop.index }};
+    {% else %}
+      {% if '*' in item.type %}
+        {% set item_type = 'uint64' %}
+      {% else %}
+        {% set item_type = item.type %}
+      {% endif %}
+      {{ item_type }} {{ item.name }} = {{ loop.index }};
+    {% endif %}
+
+  {% endfor %}
+
+  {% for item in fields %}
+
+    {% if 'vector' in item.type %}
+      {% if '*' in item.type %}
+        {% set item_type = 'uint64' %}
+      {% else %}
+        {% set item_type = item.type.split('<')[1].strip(' >') %}
+      {% endif %}
+      repeated {{ item_type }} {{ item.name }} = {{ loop.index + fields_static|length }};
+    {% else %}
+      {% if '*' in item.type %}
+        {% set item_type = 'uint64' %}
+      {% else %}
+        {% set item_type = item.type %}
+      {% endif %}
+      {{ item_type }} {{ item.name }} = {{ loop.index + fields_static|length }};
+    {% endif %}
+
+  {% endfor %}
+}
