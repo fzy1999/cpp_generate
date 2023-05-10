@@ -11,6 +11,8 @@ RTTR_REGISTRATION{
       
       .property("secplist", &TopClass::secplist)
       .property("second", &TopClass::second)
+      .property("name", &TopClass::name)
+      .property("x", &TopClass::x)
       
       ;
         rttr::registration::class_<SecondClass>("SecondClass")

@@ -10,13 +10,12 @@
 using namespace clang;
 
 class MacroCallback : public PPCallbacks {
- public:
-  explicit MacroCallback(SourceManager& sm, LangOptions& opts, Context* ctx)  //
-      : _sm(sm), _opts(opts), _ctx(ctx) {
-  }
+public:
+  explicit MacroCallback(SourceManager &sm, LangOptions &opts, Context *ctx) //
+      : _sm(sm), _opts(opts), _ctx(ctx) {}
 
-  void MacroExpands(const Token& token, const MacroDefinition& /*def*/, SourceRange /*range*/,
-                    const MacroArgs* /*args*/) final {
+  void MacroExpands(const Token &token, const MacroDefinition & /*def*/,
+                    SourceRange /*range*/, const MacroArgs * /*args*/) final {
 
     if (_sm.isInSystemHeader(token.getLocation())) {
       return;
@@ -25,7 +24,7 @@ class MacroCallback : public PPCallbacks {
     auto text = spell(&token, _sm);
     auto t = token;
 
-    if (text == "ER_REFLECT") {
+    if (text == "RTTR_REFLECT") {
       AttrReflect attr;
 
       while (true) {
@@ -36,7 +35,8 @@ class MacroCallback : public PPCallbacks {
         if (t.getKind() == tok::r_paren) {
           break;
         }
-        if (!(t.getKind() == tok::raw_identifier || t.getKind() == tok::string_literal)) {
+        if (!(t.getKind() == tok::raw_identifier ||
+              t.getKind() == tok::string_literal)) {
           continue;
         }
 
@@ -56,11 +56,12 @@ class MacroCallback : public PPCallbacks {
         t = t_opt.value();
 
         spelling = spell(&t, _sm).str();
-      } while (spelling == "struct" || spelling == "class" || spelling == "enum" || spelling == "const");
+      } while (spelling == "struct" || spelling == "class" ||
+               spelling == "enum" || spelling == "const");
 
       _ctx->reflect_map[_sm.getFileOffset(t.getLocation())] = attr;
 
-    } else if (text == "ER_ALIAS") {
+    } else if (text == "RTTR_ALIAS") {
       std::string alias;
 
       // skip '('
@@ -94,7 +95,7 @@ class MacroCallback : public PPCallbacks {
 
       _ctx->alias_map[_sm.getFileOffset(t_origin.getLocation())] = alias;
 
-    } else if (text == "ER_EXCLUDE") {
+    } else if (text == "RTTR_EXCLUDE") {
 
       auto t_origin = t;
       while (true) {
@@ -118,16 +119,17 @@ class MacroCallback : public PPCallbacks {
     }
   }
 
- private:
-  SourceManager& _sm;
-  LangOptions& _opts;
-  Context* _ctx;
+private:
+  SourceManager &_sm;
+  LangOptions &_opts;
+  Context *_ctx;
 
-  static inline StringRef spell(SourceRange range, const SourceManager& sm) {
-    return Lexer::getSourceText(CharSourceRange::getTokenRange(range), sm, LangOptions(), nullptr);
+  static inline StringRef spell(SourceRange range, const SourceManager &sm) {
+    return Lexer::getSourceText(CharSourceRange::getTokenRange(range), sm,
+                                LangOptions(), nullptr);
   }
 
-  static inline StringRef spell(const Token* token, const SourceManager& sm) {
+  static inline StringRef spell(const Token *token, const SourceManager &sm) {
     SourceLocation begin;
     SourceLocation end;
 

@@ -2,14 +2,18 @@ cmake_minimum_required(VERSION 3.10)
 
 project(cpp_generator)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I /home/sxx/.local/lib/clang/17/include")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -fno-limit-debug-info")
+set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_C_COMPILER "clang")
+
 set(CMAKE_BUILD_TYPE "Debug")
 
 set(CMAKE_CXX_STANDARD 17)
 
 if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I /home/sxx/.local/lib/clang/17/include")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-limit-debug-info -gdwarf-4")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -43,5 +47,5 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE pantor::inja)
 target_link_libraries(${PROJECT_NAME} PRIVATE LLVM clang-cpp)
 
-
+add_subdirectory(test)
 # configure_file(config.yaml ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config.yaml COPYONLY)

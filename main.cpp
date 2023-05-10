@@ -16,8 +16,8 @@
 #include <vector>
 
 #include "parser/parser_cpp.h"
-#include "to_filename.h"
 #include "tools/files.h"
+#include "tools/to_filename.h"
 #include "clang/AST/ASTTypeTraits.h"
 
 // tclap
@@ -57,7 +57,6 @@ Config parse_config(std::string c_path) {
                   Config::Templates{"../generator/test/templates/header.inja",
                                     "../generator/templates/registor.inja",
                                     "../generator/templates/registor.inja"},
-                  // {"../example/data/bicycle.h"},
                   {"../generator/test/data/exampleClass.h"},
                   "../generator/test/generated",
                   "registor.h"};

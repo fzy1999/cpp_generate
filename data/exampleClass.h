@@ -1,18 +1,19 @@
 #pragma once
+#include <rttr/registration_friend.h>
 #include <string>
 #include <vector>
-#define ER_REFLECT()
+#define RTTR_REFLECT(...)
 using std::string;
 class SecondClass;
 
-ER_REFLECT()
+RTTR_REFLECT(WithNonPublic)
 class BottomClass {
 public:
   string name = "Buttom";
   // SecondClass* second;
 };
 
-ER_REFLECT()
+RTTR_REFLECT(WithNonPublic)
 class SecondClass {
 public:
   BottomClass *bottom;
@@ -21,13 +22,13 @@ public:
   // RTTR_ENABLE()
 };
 
-ER_REFLECT()
+RTTR_REFLECT(WithNonPublic)
 class TopClass {
 public:
   void set_second(SecondClass *_second) { second = _second; }
   std::vector<SecondClass *> secplist;
   SecondClass *second;
-
+  RTTR_REGISTRATION_FRIEND
 private:
   string name = "top";
   int32_t x = 99;
