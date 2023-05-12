@@ -17,14 +17,19 @@
 
 #include "config.h"
 
-Files::Files() {
+Files::Files()
+{
   _root = executable_name();
   cut_filename(&_root);
 }
 
-const std::string &Files::root() { return _root; }
+const std::string& Files::root()
+{
+  return _root;
+}
 
-void Files::correct_config(Config *config) {
+void Files::correct_config(Config* config)
+{
   correct_path(&(config->compdb_dir));
   correct_path(&(config->templates.header));
   correct_path(&(config->templates.for_enum));
@@ -36,45 +41,48 @@ void Files::correct_config(Config *config) {
 }
 
 #if defined(_WIN32)
-std::string Files::to_utf8(const wchar_t *str, size_t size) {
-  int size_utf8 = WideCharToMultiByte(CP_UTF8,                //
-                                      WC_ERR_INVALID_CHARS,   //
-                                      str,                    //
-                                      static_cast<int>(size), //
+std::string Files::to_utf8(const wchar_t* str, size_t size)
+{
+  int size_utf8 = WideCharToMultiByte(CP_UTF8,                 //
+                                      WC_ERR_INVALID_CHARS,    //
+                                      str,                     //
+                                      static_cast<int>(size),  //
                                       nullptr, 0, nullptr, nullptr);
 
   std::string str_utf8(size_utf8, '\0');
-  WideCharToMultiByte(CP_UTF8,                //
-                      WC_ERR_INVALID_CHARS,   //
-                      str,                    //
-                      static_cast<int>(size), //
-                      str_utf8.data(),        //
-                      size_utf8,              //
+  WideCharToMultiByte(CP_UTF8,                 //
+                      WC_ERR_INVALID_CHARS,    //
+                      str,                     //
+                      static_cast<int>(size),  //
+                      str_utf8.data(),         //
+                      size_utf8,               //
                       nullptr, nullptr);
 
   return str_utf8;
 }
 
-std::wstring Files::from_utf8(const char *str, size_t size) {
-  int size_w = MultiByteToWideChar(CP_UTF8,                //
-                                   MB_ERR_INVALID_CHARS,   //
-                                   str,                    //
-                                   static_cast<int>(size), //
+std::wstring Files::from_utf8(const char* str, size_t size)
+{
+  int size_w = MultiByteToWideChar(CP_UTF8,                 //
+                                   MB_ERR_INVALID_CHARS,    //
+                                   str,                     //
+                                   static_cast<int>(size),  //
                                    nullptr, 0);
 
   std::wstring str_w(size_w, '\0');
-  MultiByteToWideChar(CP_UTF8,                //
-                      MB_ERR_INVALID_CHARS,   //
-                      str,                    //
-                      static_cast<int>(size), //
-                      str_w.data(),           //
+  MultiByteToWideChar(CP_UTF8,                 //
+                      MB_ERR_INVALID_CHARS,    //
+                      str,                     //
+                      static_cast<int>(size),  //
+                      str_w.data(),            //
                       size_w);
 
   return str_w;
 }
 #endif
 
-inline std::string Files::executable_name() {
+inline std::string Files::executable_name()
+{
 #if defined(__linux__)
   auto raw_path = std::make_unique<char[]>(PATH_MAX);
 
@@ -113,7 +121,8 @@ inline std::string Files::executable_name() {
 #endif
 }
 
-void Files::correct_path(std::string *path) {
+void Files::correct_path(std::string* path)
+{
   if (is_absolute(*path)) {
     path->insert(0, _root);
   }
@@ -130,13 +139,16 @@ void Files::correct_path(std::string *path) {
   }
 }
 
-void Files::complete_files(std::vector<std::string> *pathes) {
+void Files::complete_files(std::vector<std::string>* pathes)
+{
   auto old = *pathes;
   pathes->clear();
 
   for (auto path : old) {
     correct_path(&path);
-
+    if (!is_absolute(path)) {
+      path = root() + path;
+    }
 #if defined(_WIN32)
     std::filesystem::path fs_path(from_utf8(path.data(), path.size()));
 #else
@@ -144,8 +156,7 @@ void Files::complete_files(std::vector<std::string> *pathes) {
 #endif
 
     if (std::filesystem::is_directory(fs_path)) {
-      for (auto &&file_path :
-           std::filesystem::recursive_directory_iterator(fs_path)) {
+      for (auto&& file_path : std::filesystem::recursive_directory_iterator(fs_path)) {
 #if defined(_WIN32)
         auto w_str = file_path.path().wstring();
         pathes->push_back(to_utf8(w_str.data(), w_str.size()));
@@ -159,7 +170,8 @@ void Files::complete_files(std::vector<std::string> *pathes) {
   }
 }
 
-void Files::cut_filename(std::string *str) {
+void Files::cut_filename(std::string* str)
+{
   auto pos = str->find_last_of(kDelim);
 
   if (pos != std::string::npos) {
@@ -168,9 +180,10 @@ void Files::cut_filename(std::string *str) {
   }
 }
 
-inline bool Files::is_absolute(const std::string &path) {
+inline bool Files::is_absolute(const std::string& path)
+{
 #if defined(_WIN32)
-  return path[1] == ':'; // match 'C:\', 'D:\', etc
+  return path[1] == ':';  // match 'C:\', 'D:\', etc
 #else
   return path.front() == kDelim;
 #endif
