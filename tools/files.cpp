@@ -157,6 +157,9 @@ void Files::complete_files(std::vector<std::string>* pathes)
 
     if (std::filesystem::is_directory(fs_path)) {
       for (auto&& file_path : std::filesystem::recursive_directory_iterator(fs_path)) {
+        if (std::filesystem::is_directory(file_path) || !is_header(file_path.path())) {
+          continue;
+        }
 #if defined(_WIN32)
         auto w_str = file_path.path().wstring();
         pathes->push_back(to_utf8(w_str.data(), w_str.size()));
