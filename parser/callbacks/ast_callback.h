@@ -1,36 +1,72 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 
 #include "../context.h"
 
 // clang
+#include "clang/AST/DeclCXX.h"
+#include "clang/AST/ExprCXX.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
 using namespace clang::ast_matchers;
 
 class AstCallback : public MatchFinder::MatchCallback {
- public:
-  explicit AstCallback(Context* ctx) : _ctx(ctx) {
+public:
+  explicit AstCallback(Context *ctx) : _ctx(ctx) {}
+
+  void run(const MatchFinder::MatchResult &result) final {
+    if (const auto *c = result.Nodes.getNodeAs<CXXRecordDecl>("c")) {
+      handle_class(c, nullptr, *result.SourceManager,
+                   result.Context->getLangOpts());
+    }
+    if (const auto *e = result.Nodes.getNodeAs<EnumDecl>("e")) {
+      handle_enum(e, nullptr, *result.SourceManager,
+                  result.Context->getLangOpts());
+    }
+    if (const auto *m = result.Nodes.getNodeAs<CXXMethodDecl>("m")) {
+      handle_method(m, nullptr, *result.SourceManager,
+                    result.Context->getLangOpts());
+    }
   }
 
-  void run(const MatchFinder::MatchResult& result) final {
-    if (const auto* c = result.Nodes.getNodeAs<CXXRecordDecl>("c")) {
-      handle_class(c, nullptr, *result.SourceManager, result.Context->getLangOpts());
+private:
+  Context *_ctx;
+
+  std::string getSourceCode(const CXXMethodDecl *methodDecl) {
+    if (methodDecl->getBody() == nullptr) {
+      return {};
     }
-    if (const auto* e = result.Nodes.getNodeAs<EnumDecl>("e")) {
-      handle_enum(e, nullptr, *result.SourceManager, result.Context->getLangOpts());
-    }
+    SourceManager &sourceMgr = methodDecl->getASTContext().getSourceManager();
+    SourceLocation startLoc = methodDecl->getBody()->getBeginLoc();
+    SourceLocation endLoc = methodDecl->getEndLoc();
+    auto range_get = methodDecl->getSourceRange();
+
+    // 获取函数的起始和结束位置的源代码范围
+    SourceRange range(startLoc, endLoc);
+
+    // 获取函数的源代码
+    std::string sourceCode =
+        Lexer::getSourceText(CharSourceRange::getTokenRange(range), sourceMgr,
+                             methodDecl->getASTContext().getLangOpts())
+            .str();
+    return sourceCode;
   }
 
- private:
-  Context* _ctx;
+  void handle_method(const CXXMethodDecl *m, AttrReflect *attr,
+                     const SourceManager &sm, const LangOptions &opts) {
+    auto name = m->getNameAsString();
+    auto src = getSourceCode(m);
+    std::cout << m->getNameAsString() << '\n';
+  }
 
-  void handle_class(const CXXRecordDecl* c, AttrReflect* attr, const SourceManager& sm,
-                    const LangOptions& opts) {
+  void handle_class(const CXXRecordDecl *c, AttrReflect *attr,
+                    const SourceManager &sm, const LangOptions &opts) {
     // check if this class has special attribute
     if (attr == nullptr) {
       auto it = _ctx->reflect_map.find(get_offset(c, sm, opts));
@@ -55,11 +91,12 @@ class AstCallback : public MatchFinder::MatchCallback {
 
     if (attr->withBase) {
       auto arr_bases = nlohmann::json::array();
-      for (auto&& b : c->bases()) {
+      for (auto &&b : c->bases()) {
         nlohmann::json item;
 
         item["access"] = to_access_string(b.getAccessSpecifier());
-        item["name"] = b.getType()->getAsRecordDecl()->getQualifiedNameAsString();
+        item["name"] =
+            b.getType()->getAsRecordDecl()->getQualifiedNameAsString();
         item["type"] = b.getType().getAsString();
 
         arr_bases.push_back(item);
@@ -69,11 +106,11 @@ class AstCallback : public MatchFinder::MatchCallback {
 
     auto arr_fields_static = nlohmann::json::array();
     auto arr_fields = nlohmann::json::array();
-    for (auto&& d : c->getPrimaryContext()->decls()) {
+    for (auto &&d : c->getPrimaryContext()->decls()) {
       nlohmann::json item;
 
       // handle a field
-      if (const auto* f = dyn_cast<FieldDecl>(d)) {
+      if (const auto *f = dyn_cast<FieldDecl>(d)) {
         auto offset = get_offset(f, sm, opts);
 
         if (_ctx->excludes.find(offset) != _ctx->excludes.end()) {
@@ -101,7 +138,7 @@ class AstCallback : public MatchFinder::MatchCallback {
       }
 
       // handle a static field
-      if (const auto* v = dyn_cast<VarDecl>(d)) {
+      if (const auto *v = dyn_cast<VarDecl>(d)) {
         auto offset = get_offset(v, sm, opts);
 
         if (_ctx->excludes.find(offset) != _ctx->excludes.end()) {
@@ -128,13 +165,13 @@ class AstCallback : public MatchFinder::MatchCallback {
       }
 
       // if the declaration is nested class
-      if (const auto* nc = dyn_cast<CXXRecordDecl>(d)) {
+      if (const auto *nc = dyn_cast<CXXRecordDecl>(d)) {
         if (nc->isThisDeclarationADefinition()) {
           handle_class(nc, attr, sm, opts);
         }
       }
       // or nested enum
-      if (const auto* ne = dyn_cast<EnumDecl>(d)) {
+      if (const auto *ne = dyn_cast<EnumDecl>(d)) {
         handle_enum(ne, attr, sm, opts);
       }
     }
@@ -144,8 +181,8 @@ class AstCallback : public MatchFinder::MatchCallback {
     _ctx->result.emplace(std::move(name), std::move(json));
   }
 
-  inline void handle_enum(const EnumDecl* e, AttrReflect* attr, const SourceManager& sm,
-                          const LangOptions& opts) {
+  inline void handle_enum(const EnumDecl *e, AttrReflect *attr,
+                          const SourceManager &sm, const LangOptions &opts) {
     // check if this enum has special attribute
     if (attr == nullptr) {
       auto it = _ctx->reflect_map.find(get_offset(e, sm, opts));
@@ -169,7 +206,7 @@ class AstCallback : public MatchFinder::MatchCallback {
     json["origin"] = sm.getFilename(e->getLocation());
 
     auto arr = nlohmann::json::array();
-    for (auto&& constant : e->enumerators()) {
+    for (auto &&constant : e->enumerators()) {
       auto offset = get_offset(constant, sm, opts);
 
       if (_ctx->excludes.find(offset) != _ctx->excludes.end()) {
@@ -198,7 +235,8 @@ class AstCallback : public MatchFinder::MatchCallback {
     // filesystem::path used to get relative path for #include "<path>"
     auto fs_path = std::filesystem::path(path.str());
 
-    // add additional step back cause in output_dir is another one directory 'reflected_types'
+    // add additional step back cause in output_dir is another one directory
+    // 'reflected_types'
     std::string rel = "../";
     rel += std::filesystem::relative(fs_path, _ctx->output_dir).string();
 #if defined(_WIN32)
@@ -209,8 +247,8 @@ class AstCallback : public MatchFinder::MatchCallback {
   }
 
   template <typename DeclT>
-  static inline unsigned get_offset(const DeclT* decl, const SourceManager& sm,
-                                    const LangOptions& opts) {
+  static inline unsigned get_offset(const DeclT *decl, const SourceManager &sm,
+                                    const LangOptions &opts) {
     Token token;
     Lexer::getRawToken(decl->getLocation(), token, sm, opts);
 
@@ -218,16 +256,17 @@ class AstCallback : public MatchFinder::MatchCallback {
   }
 
   static inline std::string to_access_string(AccessSpecifier access) {
-    // fast convert to er/info/access.h Access enum constants string representation
+    // fast convert to er/info/access.h Access enum constants string
+    // representation
     switch (access) {
-      case clang::AS_public:
-        return "kPublic";
-      case clang::AS_protected:
-        return "kProtected";
-      case clang::AS_private:
-        return "kPrivate";
-      default:
-        return "kNone";
+    case clang::AS_public:
+      return "kPublic";
+    case clang::AS_protected:
+      return "kProtected";
+    case clang::AS_private:
+      return "kPrivate";
+    default:
+      return "kNone";
     }
   }
 };
