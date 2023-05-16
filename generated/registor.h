@@ -1,33 +1,22 @@
 #pragma once
-#include <rttr/type>
 #include <rttr/registration>
+#include <rttr/type>
 
-#include "/home/sxx/workSpace/cpp_generator/output/../data/exampleClass.h" 
+#include "/home/sxx/workSpace/cpp_generator/output/../data/exampleClass.h"
 
-
-RTTR_REGISTRATION{
-  rttr::registration::class_<TopClass>("TopClass")
-      .constructor<>()
-      
-      .property("secplist", &TopClass::secplist)
-      .property("second", &TopClass::second)
-      .property("name", &TopClass::name)
-      .property("x", &TopClass::x)
-      
-      ;
-        rttr::registration::class_<SecondClass>("SecondClass")
-      .constructor<>()
-      
-      .property("bottom", &SecondClass::bottom)
-      .property("name", &SecondClass::name)
-      .property("y", &SecondClass::y)
-      
-      ;
-        rttr::registration::class_<BottomClass>("BottomClass")
-      .constructor<>()
-      
-      .property("name", &BottomClass::name)
-      
-      ;
-      
+RTTR_REGISTRATION {
+  struct TopClass {
+    std::vector<SecondClass *> secplist;
+    SecondClass *second;
+    string name;
+    int32_t x;
+  };
+  struct SecondClass {
+    BottomClass *bottom;
+    string name;
+    int32_t y;
+  };
+  struct BottomClass {
+    string name;
+  }
 }
