@@ -29,7 +29,8 @@
 #define DEBUG 0
 
 using json = nlohmann::json;
-void config_from_json(const json &j, Config &p) {
+void config_from_json(const json& j, Config& p)
+{
   j.at("compdb_dir").get_to(p.compdb_dir);
   j.at("header").get_to(p.templates.header);
   j.at("for_enum").get_to(p.templates.for_enum);
@@ -39,10 +40,11 @@ void config_from_json(const json &j, Config &p) {
   j.at("output_file").get_to(p.output_file);
 }
 
-Config parse_config(std::string c_path) {
+Config parse_config(std::string c_path)
+{
   std::ifstream input;
   if (1) {
-    c_path = "../config.json"; // debug
+    c_path = "../config.json";  // debug
   }
   input.open(c_path);
 
@@ -54,8 +56,7 @@ Config parse_config(std::string c_path) {
   auto data = nlohmann::json::parse(input);
   if (DEBUG) {
     conf = Config{"../build",
-                  Config::Templates{"../generator/test/templates/header.inja",
-                                    "../generator/templates/registor.inja",
+                  Config::Templates{"../generator/test/templates/header.inja", "../generator/templates/registor.inja",
                                     "../generator/templates/registor.inja"},
                   {"../generator/test/data/exampleClass.h"},
                   "../generator/test/generated",
@@ -67,7 +68,9 @@ Config parse_config(std::string c_path) {
   return conf;
 }
 
-void generate_header(std::ofstream &ofs, const std::string &header) {
+// aborted
+void generate_header(std::ofstream& ofs, const std::string& header)
+{
   std::ifstream input;
   input.open(header);
   if (!input.is_open()) {
@@ -81,10 +84,11 @@ void generate_header(std::ofstream &ofs, const std::string &header) {
   input.close();
 }
 
-void generate_file(const Config &conf) {
+void generate_file(const Config& conf)
+{
   // parse source files
-  ParserCpp parser(conf.compdb_dir, //
-                   conf.input,      //
+  ParserCpp parser(conf.compdb_dir,  //
+                   conf.input,       //
                    conf.output_dir);
 
   auto parsed = parser.parse();
@@ -105,15 +109,13 @@ void generate_file(const Config &conf) {
 
   std::stringstream include_lines;
   std::stringstream entities;
-  std::unordered_set<std::string>
-      include_lines_set; // in case of duplicated include
+  // std::unordered_set<std::string> include_lines_set;  // in case of duplicated include
   // generate templates
-  for (auto &&[object_name, json] : parsed) {
-    if (include_lines_set.find(json.at("origin").get<std::string>()) ==
-        include_lines_set.end()) {
-      include_lines << inja_env.render("#include \"{{ origin }}\" \n", json);
-      include_lines_set.insert(json.at("origin").get<std::string>());
-    }
+  for (auto&& [object_name, json] : parsed) {
+    // if (include_lines_set.find(json.at("origin").get<std::string>()) == include_lines_set.end()) {
+    //   include_lines << inja_env.render("#include \"{{ origin }}\" \n", json);
+    //   include_lines_set.insert(json.at("origin").get<std::string>());
+    // }
     if (json["id"].get<int>() == 0) {
       inja_env.render_to(entities, template_object, json);
     } else {
@@ -121,6 +123,9 @@ void generate_file(const Config &conf) {
     }
   }
   json all;
+  for (auto path : conf.input) {
+    include_lines << "#include \"" << path << "\"\n";
+  }
   all["include_lines"] = include_lines.str();
   all["entities"] = entities.str();
   inja_env.render_to(registor, template_header, all);
@@ -128,15 +133,15 @@ void generate_file(const Config &conf) {
 }
 
 ////////////////////////////////////
-int main(int argc, const char **argv) {
+int main(int argc, const char** argv)
+{
   TCLAP::CmdLine cmd("Easy Reflection code generator");
 
   Files file_manager;
   auto fname = file_manager.root();
-  TCLAP::ValueArg<std::string> c_arg(
-      "c", "config",
-      "Explicitly specify path to the config file", //
-      false, file_manager.root() + "../config.json", "path");
+  TCLAP::ValueArg<std::string> c_arg("c", "config",
+                                     "Explicitly specify path to the config file",  //
+                                     false, file_manager.root() + "../config.json", "path");
 
   TCLAP::SwitchArg p_arg("p", "perf", "Print performance report", false);
 
@@ -162,13 +167,10 @@ int main(int argc, const char **argv) {
   }
   auto time_3 = std::chrono::steady_clock::now();
   auto analysis = std::chrono::duration<double>(time_2 - time_1).count();
-  auto generation =
-      std::chrono::duration_cast<std::chrono::milliseconds>(time_3 - time_2)
-          .count();
+  auto generation = std::chrono::duration_cast<std::chrono::milliseconds>(time_3 - time_2).count();
   auto all = std::chrono::duration<double>(time_3 - time_1).count();
 
-  printf("analysis %f sec, generation %f ms, all %f sec\n", analysis,
-         generation, all);
+  printf("analysis %f sec, generation %f ms, all %f sec\n", analysis, generation, all);
 
   return 0;
 }

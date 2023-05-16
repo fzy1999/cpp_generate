@@ -1,0 +1,13 @@
+#pragma once
+#include "myrttr/type"
+#include "myrttr/registration"
+#include "../common.h"
+
+{{include_lines}}
+
+RTTR_REGISTRATION{
+    rttr::registration::class_<io::IdHolder>("IdHolder")
+      .property("id", &io::IdHolder::id)
+      .property("derive_type", &io::IdHolder::derive_type);
+{{entities}}
+}
