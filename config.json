@@ -2,7 +2,7 @@
     "compdb_dir": "../build",
     "header": "../templates/header.inja",
     "for_enum": "../templates/registor.inja",
-    "object": "../templates/registor.inja",
+    "object": "../templates/cpp2c.inja",
     "input": [
         "../data/exampleClass.h"
     ],

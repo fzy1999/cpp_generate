@@ -1,0 +1,5 @@
+struct {{name}}{
+{% for item in fields -%}
+    {{item.type}} {{item.name}};
+{% endfor %}
+}
