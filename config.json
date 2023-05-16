@@ -1,8 +1,8 @@
 {
     "compdb_dir": "../build",
-    "header": "../templates/header.inja",
+    "header": "../templates/rttr_header.inja",
     "for_enum": "../templates/registor.inja",
-    "object": "../templates/cpp2c.inja",
+    "object": "../templates/registor.inja",
     "input": [
         "../data/exampleClass.h"
     ],
