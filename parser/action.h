@@ -4,20 +4,25 @@
 #include "callbacks/macro_callback.h"
 
 // clang
+#include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendActions.h"
 
-class Action : public ASTFrontendAction {
+class Action : public ASTFrontendAction
+{
  public:
-  explicit Action(Context* ctx) : _ast_callback(ctx), _ctx(ctx) {
-    static const auto class_matcher = cxxRecordDecl(isDefinition(), unless(isExpansionInSystemHeader())).bind("c");
+  explicit Action(Context* ctx) : _ast_callback(ctx), _ctx(ctx)
+  {
+    static const auto class_matcher = cxxRecordDecl(isDefinition(), unless(isExpansionInSystemHeader()),
+                                                    hasAncestor(namedDecl(hasName("idb"))))
+                                          .bind("c");  // TODO(): temporarily exclude rttr;
     _finder.addMatcher(class_matcher, &_ast_callback);
     static const auto enum_matcher = enumDecl(unless(isExpansionInSystemHeader())).bind("e");
     _finder.addMatcher(enum_matcher, &_ast_callback);
   }
 
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance& compiler, StringRef /*in_file*/)
-  override {
+  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance& compiler, StringRef /*in_file*/) override
+  {
     // register macro handler
     compiler.getPreprocessor().addPPCallbacks(std::make_unique<MacroCallback>(compiler.getSourceManager(),  //
                                                                               compiler.getLangOpts(),       //
@@ -32,14 +37,12 @@ class Action : public ASTFrontendAction {
   Context* _ctx;
 };
 
-class ActionFactory : public tooling::FrontendActionFactory {
+class ActionFactory : public tooling::FrontendActionFactory
+{
  public:
-  explicit ActionFactory(Context* ctx) : _ctx(ctx) {
-  }
+  explicit ActionFactory(Context* ctx) : _ctx(ctx) {}
 
-  std::unique_ptr<FrontendAction> create() override {
-    return std::make_unique<Action>(_ctx);
-  }
+  std::unique_ptr<FrontendAction> create() override { return std::make_unique<Action>(_ctx); }
 
  private:
   Context* _ctx;
